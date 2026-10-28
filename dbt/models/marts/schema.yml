@@ -1,0 +1,112 @@
+version: 2
+
+models:
+  # ---------- Dimensions ----------
+  - name: dim_transformers
+    description: "One row per transformer (the street box that feeds about 200 homes): feeder, substation, district, governorate, capacity and location. SCD Type 1: only the latest version is kept."
+    columns:
+      - name: transformer_id
+        description: "Transformer ID, e.g. T-0042"
+        tests:
+          - unique
+          - not_null
+      - name: capacity_kw
+        description: "Maximum safe load of the transformer, in kW"
+        tests:
+          - not_null
+
+  - name: dim_meters
+    description: "One row per version of a smart meter (home or shop), built from the meters_snapshot. SCD Type 2: when a meter moves to another transformer or changes tariff, the old row is closed (dbt_valid_to) and a new one starts."
+    columns:
+      - name: meter_id
+        description: "Meter ID, e.g. M-000865"
+        tests:
+          - not_null
+      - name: transformer_id
+        description: "The transformer this meter was connected to during this version"
+        tests:
+          - relationships:
+              to: ref('dim_transformers')
+              field: transformer_id
+      - name: is_current
+        description: "TRUE for the version that is valid today"
+
+  # ---------- Facts ----------
+  - name: fact_transformer_readings
+    description: "Grain: one transformer, one 15-minute reading. What the transformer sent out (kW, kWh) and its voltage."
+    columns:
+      - name: transformer_id
+        tests:
+          - not_null
+      - name: reading_ts
+        description: "Start of the 15-minute slot (UTC)"
+        tests:
+          - not_null
+
+  - name: fact_meter_readings
+    description: "Grain: one meter, one 15-minute reading. What each home or shop recorded (kW, kvar, voltage, kWh), already linked to its transformer."
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns: ['meter_id', 'reading_ts']
+          config:
+            severity: warn
+    columns:
+      - name: meter_id
+        tests:
+          - not_null
+      - name: kw
+        description: "Power at that moment, in kW"
+        tests:
+          - not_null
+
+  # ---------- The three threat checks ----------
+  - name: check_overload
+    description: "Overload: the transformer's load is at or above 85% of its capacity for 2 readings in a row (30 minutes). Incremental."
+
+  - name: check_line_drop
+    description: "Line drop: the transformer's voltage is below 207 V (10% under the normal 230 V) for 4 readings in a row (1 hour). Incremental."
+
+  - name: check_theft
+    description: "Theft: over a rolling 4-hour window (16 readings), more than 11% of the energy the transformer sent never shows up on its meters (6% normal cable loss + 5% margin), and at least 95% of the expected meter readings arrived. Incremental."
+
+  - name: anomaly_flags
+    description: "All alerts from the three checks in one table. Grain: one alert = one transformer, one threat type, one time window."
+    columns:
+      - name: anomaly_id
+        tests:
+          - unique
+          - not_null
+      - name: event_type
+        tests:
+          - accepted_values:
+              values: ['overload', 'line_drop', 'theft']
+      - name: transformer_id
+        tests:
+          - relationships:
+              to: ref('dim_transformers')
+              field: transformer_id
+
+  # ---------- KPIs for the dashboard ----------
+  - name: kpi_daily_demand
+    description: "Per day: total energy delivered by the whole network (kWh) and the network's peak power (kW)."
+
+  - name: kpi_transformer_peak
+    description: "Per transformer: the highest load recorded and that peak as a percentage of capacity."
+
+  - name: kpi_district_health
+    description: "Per district: energy consumed, number of alerts and number of transformers with each threat."
+
+  - name: kpi_anomaly_summary
+    description: "Per day and threat type: number of alerts and number of affected transformers."
+
+  # ---------- Accuracy against the simulator's answer key ----------
+  - name: accuracy_metrics
+    description: "Compares what the simulator planted (sim_truth) with what the checks found, per transformer and threat type: True Positive, False Positive or False Negative."
+    columns:
+      - name: detection_status
+        tests:
+          - accepted_values:
+              values: ['True Positive', 'False Positive', 'False Negative']
+
+  - name: accuracy_summary
+    description: "Per threat type: true positives, false positives, false negatives, precision and recall."

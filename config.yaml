@@ -1,0 +1,48 @@
+# Smart grid simulator settings (dev mode by default)
+# Same seed + same settings = exactly the same data every run.
+
+seed: 42
+start_date: "2026-08-01"   # first simulated day (UTC)
+days: 3                    # dev: 3 | full: 2 (day 1 is streamed; day 2 adds the grid changes for SCD2)
+
+meters: 1000               # dev: 1000 | full: 100000
+transformers: 5            # dev: 5    | full: 500  (meters are split evenly)
+interval_minutes: 15
+
+normal_peak_load: 0.75     # a normal evening uses ~75% of a transformer's capacity
+cable_loss: 0.06           # 6% of energy is always lost as heat in the cables
+commercial_share: 0.08     # 8% of meters are shops
+
+anomalies:
+  overload:                # handbook: transformer load surge
+    transformers: 1        # full: 10
+    factor: 1.45           # homes on it use 45% more (ACs on)
+    day: 1
+    start: "18:00"
+    hours: 3
+  line_drop:               # handbook: persistent line drop
+    transformers: 1        # full: 5
+    voltage_factor: 0.88   # voltage 12% lower
+    day: 1
+    start: "06:00"
+    hours: 4
+  theft:                   # handbook: irregular consumption (power theft)
+    transformers: 1        # full: 10
+    thieves_per_transformer: 30
+    recorded_share: [0.2, 0.4]   # a thief's meter records only 20-40% of real use
+  silent_meters:
+    meters: 5              # full: 500
+    hours: [1, 3]
+
+dirty_data:                # mixed INTO the main stream, like real messy data
+  duplicate_pct: 0.5
+  malformed_pct: 0.1
+
+late_data:                 # readings that arrive after their time (weak signal)
+  late_pct: 1              # 1% of readings are sent late
+  delay_slots: [1, 8]      # 1 to 8 slots late = 15 min to 2 hours
+
+grid_changes_per_day:      # small daily changes, needed to show SCD
+  moved_meters_pct: 0.1    # meter moved to another transformer (SCD Type 2)
+  tariff_changes_pct: 0.5  # home becomes a shop or back (SCD Type 2)
+  name_fixes: 3            # typo fixed in a customer name (SCD Type 1)

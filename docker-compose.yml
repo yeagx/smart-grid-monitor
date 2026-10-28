@@ -1,0 +1,107 @@
+# Smart Grid Monitor: the services that run on the laptop.
+#   kafka         message broker (always on)
+#   spark-bronze  Spark job 1: Kafka -> S3 bronze/ (always on)
+#   simulator     generator + validator + producer, run on demand   (profile: tools)
+#   spark-silver  Spark job 2: bronze/ -> silver/ dlq/ export/      (profile: silver)
+services:
+  kafka:
+    image: apache/kafka:3.9.1
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://:29092,CONTROLLER://:29093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:29093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_LOG_DIRS: /var/lib/kafka/data
+    volumes:
+      - kafka_data:/var/lib/kafka/data
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:29092 --list >/dev/null 2>&1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+    restart: unless-stopped
+
+  spark-bronze:
+    build:
+      context: .
+      dockerfile: docker/bronze.Dockerfile
+    depends_on:
+      kafka:
+        condition: service_healthy
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      KAFKA_TOPICS: meter.readings,transformer.readings
+      KAFKA_STARTING_OFFSETS: latest
+      BRONZE_OUTPUT_PATH: s3a://${S3_BUCKET:-sic-grad-project}/bronze/
+      SPARK_CHECKPOINT_PATH: /app/checkpoints/bronze
+      AWS_REGION: ${AWS_REGION:-eu-north-1}
+      PYTHONUNBUFFERED: "1"
+    env_file:
+      - .env
+    volumes:
+      - ./bronze:/app/bronze
+      - ./checkpoints:/app/checkpoints
+      - ./.spark-ivy:/tmp/spark-ivy
+    restart: unless-stopped
+
+  simulator:
+    build:
+      context: .
+      dockerfile: docker/simulator.Dockerfile
+    depends_on:
+      kafka:
+        condition: service_healthy
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      PYTHONUNBUFFERED: "1"
+    user: "${LOCAL_UID:-1000}:${LOCAL_GID:-1000}"
+    volumes:
+      - ./output:/app/output
+    # Default: generate + validate only. Kafka publishing is a separate deliberate command.
+    command: ["sh", "-c", "python simulator/generator.py --config config.yaml --out /app/output && python simulator/validate_outputs.py /app/output"]
+    profiles: ["tools"]
+
+  # Spark job 2: bronze -> silver / dlq / export (Delta + plain Parquet on S3).
+  # Start it AFTER the grid files are uploaded (the fullday run prints when).
+  spark-silver:
+    build:
+      context: .
+      dockerfile: docker/silver.Dockerfile
+    env_file:
+      - .env
+    environment:
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - ./.spark-ivy:/tmp/spark-ivy
+    command:
+      - /opt/spark/bin/spark-submit
+      - --master
+      - local[3]
+      - --driver-memory
+      - 3g
+      - --conf
+      - spark.jars.ivy=/tmp/spark-ivy
+      - --packages
+      - io.delta:delta-spark_2.12:3.2.0,org.apache.hadoop:hadoop-aws:3.3.4
+      - /app/spark/silver_processing.py
+      - --mode
+      - s3
+      - --trigger-mode
+      - continuous
+      - --trigger-interval
+      - 1 minute
+    profiles: ["silver"]
+    restart: "no"
+
+volumes:
+  kafka_data:

@@ -1,0 +1,37 @@
+# Secrets (never commit)
+.env
+.env.*
+!.env.example
+profiles.yml
+
+# Generated data and run state
+output/
+bronze/*
+!bronze/.gitkeep
+checkpoints/*
+!checkpoints/.gitkeep
+.spark-ivy/
+demo_history.txt
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# dbt
+dbt/target/
+dbt/dbt_packages/
+dbt/logs/
+
+# Airflow runtime files (only the DAG is part of the project)
+airflow/*
+!airflow/dags/
+logs/
+
+# Editors and OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*:Zone.Identifier

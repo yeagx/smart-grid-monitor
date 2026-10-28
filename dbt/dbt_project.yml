@@ -1,0 +1,16 @@
+name: smart_grid
+
+profile: smart_grid
+
+model-paths: ["models"]
+macro-paths: ["macros"]
+snapshot-paths: ["snapshots"]
+test-paths: ["tests"]
+clean-targets:
+  - "target"
+  - "dbt_packages"
+
+models:
+  smart_grid:
+    marts:
+      +materialized: table

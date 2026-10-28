@@ -1,0 +1,18 @@
+version: 2
+
+sources:
+  - name: raw
+    description: "Tables loaded from S3 by warehouse/03_load_raw.sql (COPY INTO)."
+    database: SMART_GRID_DB
+    schema: RAW
+    tables:
+      - name: meter_readings
+        description: "Clean meter readings from S3 export/ (written by Spark job 2)."
+      - name: transformer_readings
+        description: "Clean transformer readings from S3 export/ (written by Spark job 2)."
+      - name: grid_meters
+        description: "Daily meter lists (grid/meters_YYYYMMDD.csv): which meter is on which transformer, tariff, customer, address."
+      - name: grid_transformers
+        description: "Daily transformer lists (grid/transformers_YYYYMMDD.csv): feeder, substation, district, capacity, location."
+      - name: sim_truth
+        description: "The simulator's answer key: every problem it planted. Used only to measure accuracy."

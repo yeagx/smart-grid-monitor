@@ -1,0 +1,15 @@
+# Copy this to ~/.dbt/profiles.yml (in Ubuntu: /home/<you>/.dbt/profiles.yml)
+# and fill in the 2 placeholders. Never commit the real file.
+smart_grid:
+  target: dev
+  outputs:
+    dev:
+      type: snowflake
+      account: "<your-account-identifier>"   # from the last query of warehouse/01_setup_snowflake.sql, e.g. ABCDEFG-XY12345
+      user: DBT_USER
+      password: "<your-dbt-password>"
+      role: DBT_ROLE
+      database: SMART_GRID_DB
+      warehouse: SMART_GRID_WH
+      schema: MARTS
+      threads: 4

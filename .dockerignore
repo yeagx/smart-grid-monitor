@@ -1,0 +1,16 @@
+.env
+.env.*
+!.env.example
+.git
+output/
+bronze/*
+checkpoints/*
+.spark-ivy/
+airflow/
+dbt/
+docs/
+powerbi/
+warehouse/
+**/__pycache__/
+*.py[cod]
+*:Zone.Identifier
