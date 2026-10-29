@@ -19,6 +19,7 @@ This guide takes you from an empty laptop to the full pipeline running, with the
 | 11 | Airflow (every 15 minutes) | after Part 10 |
 | 12 | Power BI dashboard | after Part 10 |
 | 13 | Send new data (incremental runs and live demo) | any time |
+| 14 | Web app (API + browser front end) | after Part 10 |
 
 > **Rule for the whole guide:** run every command inside Ubuntu, in your home folder (`~/smart-grid-monitor`), never in `/mnt/c/...`.
 > *Why:* the Windows drive is very slow from Ubuntu and breaks Linux file permissions.
@@ -294,6 +295,53 @@ Then trigger the DAG (or wait for the schedule) and refresh Power BI: Aug 2 appe
 | 4 | Failure and retry | While `dbt_run` runs, *Mark Failed*, then *Clear*: it runs again and turns green |
 | 5 | Backfill | `dbt/.venv/bin/dbt run --full-refresh --select check_theft check_overload check_line_drop` (from `dbt/`) |
 
+## Part 14 · Web app (API and browser front end)
+
+The web app reads the same Gold tables as Power BI and shows them in a browser: Overview, Alert Map, Alert Log, Transformers, Accuracy, and the closed Decision Center. This part can run on Windows (PowerShell) or in Ubuntu.
+
+**14.1 Install the tools (once).** [.NET 10 SDK](https://dotnet.microsoft.com/download) for the API and [Node.js 20 or newer](https://nodejs.org) for the front end. Check with `dotnet --version` and `node --version`.
+
+**14.2 Try it on mock data first (no Snowflake needed).**
+```bash
+cd apps/backend
+dotnet run --project src/SmartGrid.Api --launch-profile http      # API on http://localhost:5091
+```
+In a second terminal:
+```bash
+cd apps/frontend
+cp .env.example .env            # PowerShell: copy .env.example .env
+npm install
+npm run dev                     # open http://localhost:5173
+```
+*Why:* the API starts on built-in sample data by default, so you can check that both parts run before connecting the warehouse.
+
+**14.3 Create a key pair for the web app user (once, in Ubuntu).**
+```bash
+openssl genrsa 2048 | openssl pkcs8 -topk8 -inform PEM -out rsa_key.p8 -nocrypt
+openssl rsa -in rsa_key.p8 -pubout -out rsa_key.pub
+cat rsa_key.pub
+```
+Copy the text between the `BEGIN` and `END` lines into `RSA_PUBLIC_KEY` in **Step D** of `warehouse/01_setup_snowflake.sql`, then select Step D and run it.
+*Why:* the web app gets its own read-only user (`WEBAPP_USER`) that signs in with a key instead of a password. Keep `rsa_key.p8` private: git ignores it and it never leaves your machine.
+
+**14.4 Point the API at Snowflake.** In `apps/backend/src/SmartGrid.Api`:
+```bash
+dotnet user-secrets set "DataSource:Provider" "Snowflake"
+dotnet user-secrets set "ConnectionStrings:Snowflake" "account=<account-identifier>;user=WEBAPP_USER;authenticator=snowflake_jwt;private_key_file=<full path to rsa_key.p8>;db=SMART_GRID_DB;schema=MARTS;warehouse=SMART_GRID_WH;role=WEBAPP_ROLE"
+```
+*Why:* user secrets are stored on your machine, outside the repo, so the connection details are never committed.
+
+Run the API again and open `http://localhost:5091/api/health`: it should say `"dataProvider": "Snowflake"`. Refresh the browser and the pages show the real data (25 events: 10 theft, 10 overload, 5 voltage drop).
+More detail and a connection test: [apps/backend/SNOWFLAKE_SETUP.md](apps/backend/SNOWFLAKE_SETUP.md).
+
+**14.5 Tests (optional).**
+```bash
+dotnet test apps/backend/SmartGrid.sln      # 149 tests
+cd apps/frontend && npm test                # 63 tests
+```
+
+> The warehouse stores one row for every flagged 15-minute reading. The API merges back-to-back rows into one **event**, so one theft is counted once. That is why the web app shows 25 events, the same number as the answer key.
+
 ## Run script modes
 
 | Command | What it does |
@@ -326,3 +374,6 @@ The size of the data, the days and the planted problems are set in `config.yaml`
 | Airflow doesn't show the DAG | Check `AIRFLOW_HOME` and `SMART_GRID_HOME` point to `~/smart-grid-monitor` |
 | Accuracy shows overload as "False Negative" | The stream stopped before 18:00–21:00 of day 1; let `fullday` finish |
 | Power BI refresh fails with a "cyclic reference" | dbt was rebuilding the tables; wait for the Airflow run to finish and refresh again |
+| Web app pages say "Unable to reach the backend" | Start the API first (14.2) and check `VITE_API_BASE_URL` in `apps/frontend/.env` |
+| Web app shows sample numbers, not yours | The API is still on mock data; check `/api/health` and redo 14.4 |
+| API: `JWT token is invalid` | The public key in Snowflake doesn't match `rsa_key.p8`; run `ALTER USER WEBAPP_USER SET RSA_PUBLIC_KEY='...'` with the matching key |

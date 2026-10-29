@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/SmartGrid.Api/SmartGrid.Api.csproj" />
+    <Project Path="src/SmartGrid.Application/SmartGrid.Application.csproj" />
+    <Project Path="src/SmartGrid.Infrastructure/SmartGrid.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/SmartGrid.Api.Tests/SmartGrid.Api.Tests.csproj" />
+    <Project Path="tests/SmartGrid.Application.Tests/SmartGrid.Application.Tests.csproj" />
+  </Folder>
+</Solution>

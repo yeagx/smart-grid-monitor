@@ -29,9 +29,25 @@ airflow/*
 !airflow/dags/
 logs/
 
+# .NET
+**/bin/
+**/obj/
+
 # Editors and OS
 .vscode/
 .idea/
 .DS_Store
 Thumbs.db
 *:Zone.Identifier
+
+# Web app
+apps/frontend/node_modules/
+apps/frontend/dist/
+apps/frontend/.env
+apps/frontend/.env.*
+!apps/frontend/.env.example
+*.tsbuildinfo
+
+# Snowflake key pair (never commit)
+*.p8
+rsa_key.pub

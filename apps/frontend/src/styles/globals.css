@@ -1,0 +1,75 @@
+@import 'leaflet/dist/leaflet.css';
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --color-brand: #1328A0;
+  }
+
+  html {
+    color-scheme: dark;
+  }
+
+  body {
+    @apply bg-grid-bg text-gray-100;
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-grid-bg;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-grid-border-light rounded-full;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-gray-500;
+  }
+}
+
+@layer components {
+  .card {
+    @apply bg-grid-panel border border-grid-border rounded-lg;
+  }
+
+  .card-hover {
+    @apply card transition-colors duration-200 hover:border-grid-border-light;
+  }
+
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2
+           bg-brand text-white text-sm font-medium rounded-lg
+           hover:bg-brand-light transition-colors duration-150
+           focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2 focus:ring-offset-grid-bg
+           disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 px-3 py-2
+           text-gray-400 text-sm font-medium rounded-lg
+           hover:text-gray-200 hover:bg-grid-surface transition-colors duration-150
+           focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2 focus:ring-offset-grid-bg;
+  }
+
+  /* Dark basemap: OpenStreetMap tiles are light, so invert them to match the dark UI.
+     Only the tile layer is filtered — markers and popups keep their real colours. */
+  .map-tiles {
+    filter: invert(1) hue-rotate(180deg) brightness(0.85) contrast(0.9) saturate(0.4);
+  }
+
+  .leaflet-container {
+    @apply bg-grid-bg font-sans;
+  }
+
+  .skeleton {
+    @apply animate-pulse bg-grid-border rounded;
+  }
+}

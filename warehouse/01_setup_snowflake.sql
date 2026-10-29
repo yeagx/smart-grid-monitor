@@ -141,3 +141,25 @@ GRANT ROLE PBI_ROLE TO ROLE SYSADMIN;
 -- Your account identifier for dbt and Power BI:
 SELECT CURRENT_ORGANIZATION_NAME() || '-' || CURRENT_ACCOUNT_NAME() AS account_identifier;
 -- ========================= END OF STEP C =============================
+
+-- ========================= STEP D (optional: the web app) ============
+-- Web app: read-only on MARTS, like Power BI. A service user that logs in with a key pair
+-- (no password), because Snowflake is retiring password-only sign-ins.
+-- Create the key pair first (RUN_GUIDE Part 14) and paste the public key below.
+CREATE ROLE IF NOT EXISTS WEBAPP_ROLE;
+GRANT USAGE ON WAREHOUSE SMART_GRID_WH TO ROLE WEBAPP_ROLE;
+GRANT USAGE ON DATABASE SMART_GRID_DB TO ROLE WEBAPP_ROLE;
+GRANT USAGE ON SCHEMA SMART_GRID_DB.MARTS TO ROLE WEBAPP_ROLE;
+GRANT SELECT ON ALL TABLES    IN SCHEMA SMART_GRID_DB.MARTS TO ROLE WEBAPP_ROLE;
+GRANT SELECT ON ALL VIEWS     IN SCHEMA SMART_GRID_DB.MARTS TO ROLE WEBAPP_ROLE;
+GRANT SELECT ON FUTURE TABLES IN SCHEMA SMART_GRID_DB.MARTS TO ROLE WEBAPP_ROLE;
+GRANT SELECT ON FUTURE VIEWS  IN SCHEMA SMART_GRID_DB.MARTS TO ROLE WEBAPP_ROLE;
+
+CREATE USER IF NOT EXISTS WEBAPP_USER
+    TYPE = SERVICE
+    RSA_PUBLIC_KEY = '<paste rsa_key.pub here, without the BEGIN/END lines>'
+    DEFAULT_ROLE = WEBAPP_ROLE
+    DEFAULT_WAREHOUSE = SMART_GRID_WH;
+GRANT ROLE WEBAPP_ROLE TO USER WEBAPP_USER;
+GRANT ROLE WEBAPP_ROLE TO ROLE SYSADMIN;
+-- ========================= END OF STEP D =============================

@@ -1,0 +1,15 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <ItemGroup>
+    <ProjectReference Include="..\SmartGrid.Application\SmartGrid.Application.csproj" />
+    <ProjectReference Include="..\SmartGrid.Infrastructure\SmartGrid.Infrastructure.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>e5b59327-9f87-40c2-94a1-0007249a8515</UserSecretsId>
+  </PropertyGroup>
+
+</Project>
