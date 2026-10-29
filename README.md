@@ -186,10 +186,10 @@ cd dbt && dbt docs generate && dbt docs serve --port 8081
 
 | Member | Role | Main work |
 |---|---|---|
-| **Abdelrahman Adel** | Data generation and streaming | Simulator and answer key, Kafka, the producer, Spark job 1 (Bronze), the run script |
-| **Zyad Abdalla** | Distributed processing and web app | Spark job 2: validation, dead-letter queue, de-duplication, enrichment, Delta Lake MERGE, export. The web app: ASP.NET Core API and React front end |
-| **Mohamed Samir** | Warehouse and detection | Snowflake loading, the dbt project: SCD2 snapshot, star schema, the three checks, KPIs, accuracy, tests |
-| **Abdulrhman Mohamed** | Cloud, integration, orchestration and serving | AWS and Snowflake setup, joining the parts end to end, Airflow, Power BI dashboard, web app Snowflake integration and pages, documentation |
+| **Abdelrahman Adel - @bebo2004** | Data generation and streaming | Simulator and answer key, Kafka, the producer, Spark job 1 (Bronze), the run script |
+| **Zeyad Abdalla - @zeezo679** | Distributed processing and web app | Spark job 2: validation, dead-letter queue, de-duplication, enrichment, Delta Lake MERGE, export. The web app: ASP.NET Core API and React front end |
+| **Mohamed Samir - @Mo-Samir10** | Warehouse and detection | Snowflake loading, the dbt project: SCD2 snapshot, star schema, the three checks, KPIs, accuracy, tests |
+| **Abdulrhman Mohamed - @yeagx** | Cloud, integration, orchestration and serving | AWS and Snowflake setup, joining the parts end to end, Airflow, Power BI dashboard, web app Snowflake integration and pages, documentation |
 
 ## Limitations
 
